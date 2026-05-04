@@ -29,3 +29,4 @@ gcp-credentials*.json
 *.tfstate
 *.tfstate.*
 .terraform.lock.hcl
+*.parquetdbt/football_intelligence/.user.yml

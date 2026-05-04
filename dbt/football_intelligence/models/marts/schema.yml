@@ -7,30 +7,35 @@ models:
         tests:
           - not_null
           - unique
+
   - name: dim_teams
     columns:
       - name: team_id
         tests:
           - not_null
           - unique
+
   - name: dim_matches
     columns:
       - name: match_id
         tests:
           - not_null
           - unique
+
   - name: dim_competitions
     columns:
       - name: competition_id
         tests:
           - not_null
           - unique
+
   - name: dim_seasons
     columns:
       - name: season_id
         tests:
           - not_null
           - unique
+
   - name: fact_events
     columns:
       - name: event_id
@@ -43,6 +48,7 @@ models:
               arguments:
                 to: ref('dim_matches')
                 field: match_id
+
   - name: fact_player_market_values
     columns:
       - name: player_id
