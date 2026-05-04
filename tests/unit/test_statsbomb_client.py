@@ -29,8 +29,14 @@ def test_statsbomb_client_reads_local_mirror_and_writes_bronze(tmp_path: Path) -
             }
         ],
     )
-    _write_json(mirror / "events" / "1234.json", [{"id": "event-1", "type": {"name": "Pass"}}])
-    _write_json(mirror / "lineups" / "1234.json", [{"team_id": 1, "team_name": "Home", "lineup": []}])
+    _write_json(
+        mirror / "events" / "1234.json",
+        [{"id": "event-1", "type": {"name": "Pass"}}],
+    )
+    _write_json(
+        mirror / "lineups" / "1234.json",
+        [{"team_id": 1, "team_name": "Home", "lineup": []}],
+    )
     _write_json(
         mirror / "three-sixty" / "1234.json",
         [{"event_uuid": "event-1", "visible_area": [], "freeze_frame": []}],
@@ -52,7 +58,10 @@ def test_statsbomb_client_reads_local_mirror_and_writes_bronze(tmp_path: Path) -
         in written_paths
     )
     assert tmp_path / "bronze/statsbomb/open-data/events/match_id=1234/events.json" in written_paths
-    assert tmp_path / "bronze/statsbomb/open-data/lineups/match_id=1234/lineups.json" in written_paths
+    assert (
+        tmp_path / "bronze/statsbomb/open-data/lineups/match_id=1234/lineups.json"
+        in written_paths
+    )
     assert (
         tmp_path / "bronze/statsbomb/open-data/three-sixty/match_id=1234/three-sixty.json"
         in written_paths
