@@ -1,96 +1,109 @@
 # football-intelligence-platform
 
-Production-oriented football data engineering platform for ingesting, modelling,
-serving, and visualising open football data.
+Production-oriented football data engineering platform for ingesting,
+modelling, serving, and visualising open football event data.
 
-## Goal
+The completed StatsBomb path runs end to end:
 
-Build an end-to-end football intelligence platform aligned with elite football
-club data engineering workflows: robust ingestion, lakehouse-style storage,
-dimensional modelling, orchestration, CI/CD, cloud infrastructure, APIs, and
-analytics dashboards.
+- sample-safe StatsBomb Open Data ingestion to local bronze JSON
+- bronze-to-silver normalization into local CSV tables
+- BigQuery silver loading with explicit schemas
+- dbt gold warehouse modelling and tests
+- Streamlit dashboard backed by BigQuery gold tables
+- FastAPI service backed by the same BigQuery gold tables
 
-## Data Sources
-
-- StatsBomb Open Data: competitions, matches, events, lineups, and 360 data.
-- Transfermarkt public web data: market values, transfers, squad composition,
-  player ages, nationalities, and fees, scraped responsibly.
+Transfermarkt ingestion/parsing exists as an optional, conservative ingestion
+path. Transfermarkt dbt marts are intentionally disabled until those silver
+tables are loaded.
 
 ## Architecture
 
-The repository follows a medallion/lakehouse design.
+The platform follows a medallion design: raw source-faithful bronze assets,
+cleaned silver tables, and analytics-ready gold marts.
 
-- Bronze: raw JSON and scraped source snapshots stored in object storage.
-- Silver: cleaned and normalized warehouse tables.
-- Gold: analytics-ready marts for dashboards and APIs.
+```mermaid
+flowchart LR
+  SB[StatsBomb Open Data] --> ING[Python ingestion]
+  ING --> BRONZE[Local bronze JSON]
+  BRONZE --> SILVER_LOCAL[StatsBomb silver CSVs]
+  SILVER_LOCAL --> BQ_SILVER[BigQuery silver dataset]
+  BQ_SILVER --> DBT[dbt transformations and tests]
+  DBT --> BQ_GOLD[BigQuery gold dataset]
+  BQ_GOLD --> DASH[Streamlit dashboard]
+  BQ_GOLD --> API[FastAPI service]
+```
 
-## Target Stack
+Primary technologies:
 
-- Python for ingestion, quality checks, APIs, and dashboards.
-- GCS and BigQuery for storage and warehouse layers.
-- dbt for warehouse transformations and tests.
-- Airflow for orchestration.
-- Docker Compose for local development.
-- Terraform for cloud infrastructure.
-- FastAPI for curated data access.
-- Streamlit for football analytics data products.
-- GitHub Actions for linting, testing, and dbt validation.
+- Python for ingestion, transformation, loading, API, and dashboard code
+- BigQuery for silver and gold warehouse tables
+- dbt for gold modelling and warehouse tests
+- Streamlit for portfolio-ready analytics views
+- FastAPI for clean JSON access to curated football data
+- Ruff and pytest for CI-friendly linting and tests
+- Docker Compose, Airflow, and Terraform scaffolding for deployment evolution
 
 ## Repository Layout
 
 ```text
 .
-├── airflow/                 # Airflow DAGs and plugins
-├── dbt/football_intelligence # dbt project
-├── docker/                  # Service-specific Dockerfiles
-├── docs/                    # Architecture and operating notes
-├── infra/terraform/         # GCS and BigQuery infrastructure skeleton
-├── scripts/                 # Local developer and CI helper scripts
+├── airflow/                  # Airflow DAG skeleton
+├── dbt/football_intelligence # dbt project for silver-to-gold modelling
+├── docker/                   # Service-specific Dockerfiles
+├── docs/                     # Architecture and operating notes
+├── infra/terraform/          # GCS and BigQuery infrastructure skeleton
+├── scripts/                  # Local developer and CI helper scripts
 ├── src/football_intelligence # Python application package
-└── tests/                   # Unit and integration tests
+└── tests/                    # Unit tests
 ```
 
-## Quick Start
+## Clean Clone Setup
 
-1. Copy `.env.example` to `.env` and fill in local values.
-2. Build local services:
+From a clean clone:
 
 ```bash
-make build
+git clone <repo-url>
+cd football-analytics-platform
+python3 -m venv .venv
+. .venv/bin/activate
+python3 -m pip install -e ".[dev]"
+cp .env.example .env
 ```
 
-3. Run the development stack:
+Edit `.env` with your GCP project, BigQuery datasets, region, and Google
+credentials. The project uses `GCP_PROJECT_ID`, `BIGQUERY_DATASET_SILVER`,
+`BIGQUERY_DATASET_GOLD`, `GCP_REGION`, and either
+`GOOGLE_APPLICATION_CREDENTIALS` or Google Application Default
+Credentials/OAuth.
 
-```bash
-make up
-```
-
-4. Run checks:
+Check the local codebase:
 
 ```bash
 make lint
 make test
 ```
 
-## StatsBomb Bronze Ingestion
+## End-to-End Sample Pipeline
 
-StatsBomb Open Data ingestion writes source-faithful JSON into the local bronze
-directory using object-storage style paths. By default, the bronze root is
-`./data/bronze`.
-
-Warning: do not run full StatsBomb ingestion as your first local ingestion.
-The open-data repository contains enough match-scoped event, lineup, and 360
-assets to make local runs slow and bulky. For local development, start with the
-bounded sample command and only use full ingestion after cloud or chunked
-processing is ready.
-
-Recommended local development command:
+Run the safe StatsBomb sample pipeline first. It limits match processing and is
+the recommended local development flow.
 
 ```bash
 make ingest-statsbomb-sample
+make transform-statsbomb-silver-sample
+make load-statsbomb-bigquery
+make dbt-run
+make dbt-test
 ```
 
-Sample ingestion command:
+Then start the two user-facing apps:
+
+```bash
+streamlit run src/football_intelligence/dashboard/app.py
+PYTHONPATH=src uvicorn football_intelligence.api.main:app --reload
+```
+
+The sample ingestion target runs:
 
 ```bash
 python3 -m football_intelligence.ingestion.statsbomb.run \
@@ -100,43 +113,42 @@ python3 -m football_intelligence.ingestion.statsbomb.run \
   --bronze-dir ./data/bronze
 ```
 
-The `--match-limit` value is applied after `--competition-ids`,
-`--season-ids`, and `--match-ids`, so samples stay bounded even when filters
-match many fixtures.
+`--match-limit` is applied after `--competition-ids`, `--season-ids`, and
+`--match-ids`, so local runs stay bounded.
 
-Full ingestion from the public GitHub raw data source should wait until cloud
-storage, orchestration, or chunked processing is in place:
+## Makefile Targets
 
-```bash
-make ingest-statsbomb
-```
+Core development:
 
-Or call the module directly:
+- `make lint`: run Ruff over source, tests, and Airflow DAGs.
+- `make format`: format source, tests, and Airflow DAGs with Ruff.
+- `make test`: run the Python test suite.
+- `make build`: build Docker Compose services.
+- `make up`: start Docker Compose services.
+- `make down`: stop Docker Compose services.
+- `make logs`: follow Docker Compose logs.
 
-```bash
-python3 -m football_intelligence.ingestion.statsbomb.run \
-  --bronze-dir ./data/bronze \
-  --collections competitions,matches,events,lineups,three-sixty
-```
+StatsBomb pipeline:
 
-To ingest from a local clone or mirror of `statsbomb/open-data/data`, set
-`STATSBOMB_LOCAL_DATA_DIR` or pass `--local-data-dir`:
+- `make ingest-statsbomb-sample`: ingest a safe five-match StatsBomb sample.
+- `make ingest-statsbomb`: run unbounded StatsBomb ingestion. Use with care.
+- `make transform-statsbomb-silver-sample`: transform local bronze sample to silver CSV.
+- `make transform-statsbomb-silver`: transform configured StatsBomb bronze to silver CSV.
+- `make load-statsbomb-bigquery`: load local StatsBomb silver CSVs to BigQuery silver.
 
-```bash
-python3 -m football_intelligence.ingestion.statsbomb.run \
-  --local-data-dir ./external/statsbomb-open-data/data \
-  --bronze-dir ./data/bronze
-```
+dbt:
 
-Useful filters:
+- `make dbt-debug`: validate the dbt BigQuery profile.
+- `make dbt-deps`: install dbt dependencies.
+- `make dbt-parse`: parse the dbt project.
+- `make dbt-run`: build active dbt models into the gold dataset.
+- `make dbt-test`: run dbt tests against gold models.
+- `make dbt-docs-generate`: generate dbt docs artifacts.
 
-```bash
-python3 -m football_intelligence.ingestion.statsbomb.run \
-  --competition-ids 2 \
-  --season-ids 44 \
-  --match-ids 1234 \
-  --match-limit 5
-```
+## StatsBomb Bronze Ingestion
+
+StatsBomb ingestion writes source-faithful JSON under `./data/bronze` by
+default, using object-storage-style paths.
 
 Expected bronze layout:
 
@@ -149,52 +161,33 @@ data/bronze/statsbomb/open-data/
 └── three-sixty/match_id=<id>/three-sixty.json
 ```
 
-## StatsBomb Silver Transformation
-
-The StatsBomb silver transformation reads raw bronze JSON and writes cleaned,
-flattened CSV tables for dbt loading, warehouse modelling, APIs, and dashboard
-features.
-
-Run:
+Useful direct invocation:
 
 ```bash
-make transform-statsbomb-silver
+python3 -m football_intelligence.ingestion.statsbomb.run \
+  --competition-ids 2 \
+  --season-ids 44 \
+  --match-limit 5 \
+  --bronze-dir ./data/bronze
 ```
 
-For local development, transform the small sample you ingested first:
+To ingest from a local clone or mirror of `statsbomb/open-data/data`, set
+`STATSBOMB_LOCAL_DATA_DIR` or pass `--local-data-dir`.
+
+Do not run full StatsBomb ingestion as the first local action. Full ingestion
+should be reserved for cloud storage, chunked processing, or an intentional
+larger-scale run.
+
+## Silver Transformation
+
+The StatsBomb silver transformation reads bronze JSON and writes normalized CSV
+tables under `./data/silver/statsbomb`.
 
 ```bash
 make transform-statsbomb-silver-sample
 ```
 
-Sample transformation command:
-
-```bash
-python3 -m football_intelligence.transformations.statsbomb.run \
-  --bronze-open-data-dir ./data/bronze/statsbomb/open-data \
-  --silver-dir ./data/silver/statsbomb
-```
-
-Or call the module directly:
-
-```bash
-python3 -m football_intelligence.transformations.statsbomb.run \
-  --bronze-open-data-dir ./data/bronze/statsbomb/open-data \
-  --silver-dir ./data/silver/statsbomb
-```
-
-Expected input layout:
-
-```text
-data/bronze/statsbomb/open-data/
-├── competitions/competitions.json
-├── matches/competition_id=<id>/season_id=<id>/matches.json
-├── events/match_id=<id>/events.json
-├── lineups/match_id=<id>/lineups.json
-└── three-sixty/match_id=<id>/three-sixty.json
-```
-
-Expected output layout:
+Expected silver output:
 
 ```text
 data/silver/statsbomb/
@@ -209,97 +202,94 @@ data/silver/statsbomb/
 └── three_sixty_freeze_frames.csv
 ```
 
-## StatsBomb BigQuery Loading
+Silver table purpose:
 
-The StatsBomb BigQuery loader reads local silver CSV files from
-`./data/silver/statsbomb` and loads them into the configured silver BigQuery
-dataset with explicit table schemas. Development loads use `WRITE_TRUNCATE`, so
-each run replaces the target tables.
+- `competitions.csv`: one row per competition-season.
+- `matches.csv`: cleaned match metadata with competition, season, teams, score,
+  stadium, and referee fields.
+- `teams.csv`: deduplicated team dimension seeds.
+- `players.csv`: deduplicated player dimension seeds.
+- `events.csv`: flattened event fact base.
+- `shots.csv`: shot-specific event details including xG and outcome.
+- `passes.csv`: pass-specific event details including recipient and pass type.
+- `pressures.csv`: pressure-specific defensive event details.
+- `three_sixty_freeze_frames.csv`: one row per 360 freeze-frame player.
 
-Set the required environment variables before loading:
+## BigQuery and dbt Warehouse
 
-```bash
-export GCP_PROJECT_ID=<your-gcp-project>
-export BIGQUERY_DATASET_SILVER=<your-silver-dataset>
-export GOOGLE_APPLICATION_CREDENTIALS=/path/to/service-account.json
-```
-
-Load the StatsBomb silver tables:
+The BigQuery loader writes the silver CSV files into
+`BIGQUERY_DATASET_SILVER` using explicit schemas and `WRITE_TRUNCATE` for
+development-friendly reloads.
 
 ```bash
 make load-statsbomb-bigquery
 ```
 
-Or call the module directly:
+dbt reads from the silver dataset and builds analytics-ready gold models into
+`BIGQUERY_DATASET_GOLD`. Source and target project/dataset names come from
+environment variables, not hardcoded values.
+
+Active gold models include:
+
+- dimensions: `dim_competitions`, `dim_matches`, `dim_players`,
+  `dim_seasons`, `dim_teams`
+- facts: `fact_events`, `fact_passes`, `fact_pressures`, `fact_shots`
+- supporting views: `stg_statsbomb_*`, `int_events_enriched`
+
+Run:
 
 ```bash
-python3 -m football_intelligence.loaders.bigquery.statsbomb_silver \
-  --silver-dir ./data/silver/statsbomb
+make dbt-run
+make dbt-test
 ```
 
-The loader writes these tables: `competitions`, `matches`, `teams`, `players`,
-`events`, `shots`, `passes`, `pressures`, and
-`three_sixty_freeze_frames`.
-
-Silver table purpose:
-
-- `competitions.csv`: one row per competition-season.
-- `matches.csv`: cleaned match metadata with competition, season, team, score,
-  stadium, and referee identifiers.
-- `teams.csv`: deduplicated team dimension seeds from matches, lineups, and
-  events.
-- `players.csv`: deduplicated player dimension seeds from lineups and events.
-- `events.csv`: flattened event fact base preserving `event_id`, `match_id`,
-  `team_id`, `player_id`, `possession`, and `timestamp`.
-- `shots.csv`: shot-specific event details including xG, outcome, technique,
-  body part, and shot end location.
-- `passes.csv`: pass-specific event details including recipient, pass type,
-  height, outcome, body part, and end location.
-- `pressures.csv`: pressure-specific event details for defensive analysis and
-  heatmaps.
-- `three_sixty_freeze_frames.csv`: one row per 360 freeze-frame player with
-  event, match, player, teammate, actor, keeper, and location fields.
+Transfermarkt dbt models are disabled until Transfermarkt silver tables are
+loaded.
 
 ## Streamlit Dashboard
 
-The Streamlit dashboard reads from the BigQuery gold dataset built by dbt. It
-uses Google Application Default Credentials or OAuth, and it does not hardcode
-project IDs, datasets, or regions.
+The Streamlit dashboard reads from BigQuery gold tables and provides a
+portfolio-ready StatsBomb analytics surface. It includes filters for team,
+match, player, and event type.
 
-Set the required environment variables:
+Dashboard views:
 
-```bash
-export GCP_PROJECT_ID=<your-gcp-project>
-export BIGQUERY_DATASET_GOLD=<your-gold-dataset>
-export GCP_REGION=europe-west2
-```
+- xG trend and shot xG summary from `fact_shots`
+- pass type distribution from `fact_passes`
+- shot outcome distribution from `fact_shots`
+- pressure count by team/player from `fact_pressures`
+- top passers from `fact_passes`
 
-Run the dashboard from the repository root:
+Run:
 
 ```bash
 streamlit run src/football_intelligence/dashboard/app.py
 ```
 
-The dashboard expects these gold models to exist: `dim_teams`, `dim_matches`,
-`dim_players`, `fact_events`, `fact_passes`, `fact_pressures`, and
-`fact_shots`. Run `make dbt-run` before opening the dashboard if the gold
-dataset has not been built yet.
-
-Available filters include team, match, player, and event type. Dashboard views
-include xG trend by match, pass type distribution, shot outcome distribution,
-pressure counts by team/player, and top passers.
+If credentials, permissions, or tables are missing, the dashboard shows a clear
+error rather than failing silently.
 
 ## FastAPI Service
 
-The FastAPI service reads from the same BigQuery gold dataset as the dashboard.
-It uses `GCP_PROJECT_ID`, `BIGQUERY_DATASET_GOLD`, and `GCP_REGION` from the
-environment, with Google Application Default Credentials or OAuth.
+The FastAPI service reads from the same BigQuery gold tables as the dashboard
+and returns clean JSON responses.
 
-Run the API locally:
+Run:
 
 ```bash
 PYTHONPATH=src uvicorn football_intelligence.api.main:app --reload
 ```
+
+Endpoints:
+
+- `GET /health`
+- `GET /teams`
+- `GET /players`
+- `GET /matches`
+- `GET /analytics/xg-summary`
+- `GET /analytics/pass-types`
+- `GET /analytics/shot-outcomes`
+- `GET /analytics/pressures`
 
 Example requests:
 
@@ -314,82 +304,42 @@ curl "http://127.0.0.1:8000/analytics/shot-outcomes?player_id=67890"
 curl "http://127.0.0.1:8000/analytics/pressures?team_id=1&limit=20"
 ```
 
-All analytics endpoints support optional `team_id`, `match_id`, `player_id`,
-and `limit` query parameters. The service returns JSON lists and responds with a
-clear `503` error if BigQuery credentials, permissions, or gold tables are not
-available.
+Analytics endpoints support optional `team_id`, `match_id`, `player_id`, and
+`limit` query parameters. BigQuery credential, table, and query failures are
+returned as clear service errors.
 
 ## Transfermarkt Ingestion
 
-Transfermarkt ingestion is intentionally URL-driven and conservative. Configure
-only the squad and transfer pages you want to collect, use a descriptive user
-agent, and keep a delay between requests. The default delay is 2 seconds.
-
-Example `.env` values:
-
-```bash
-TRANSFERMARKT_USER_AGENT=football-intelligence-platform/0.1 your-email@example.com
-TRANSFERMARKT_REQUEST_DELAY_SECONDS=3
-TRANSFERMARKT_SQUAD_URLS=https://www.transfermarkt.com/example/kader/verein/1/saison_id/2024/plus/1
-TRANSFERMARKT_TRANSFER_URLS=https://www.transfermarkt.com/example/transfers/verein/1/saison_id/2024
-LOCAL_BRONZE_DIR=./data/bronze
-LOCAL_SILVER_DIR=./data/silver
-```
-
-Run:
+Transfermarkt ingestion is URL-driven and conservative. Configure only the
+squad and transfer pages you want to collect, use a descriptive user agent, and
+keep a delay between requests.
 
 ```bash
 make ingest-transfermarkt
 ```
 
-Or call the module directly:
-
-```bash
-python3 -m football_intelligence.ingestion.transfermarkt.run \
-  --delay-seconds 3 \
-  --squad-urls "https://www.transfermarkt.com/example/kader/verein/1/saison_id/2024/plus/1" \
-  --transfer-urls "https://www.transfermarkt.com/example/transfers/verein/1/saison_id/2024" \
-  --bronze-dir ./data/bronze \
-  --silver-dir ./data/silver
-```
-
-Raw bronze outputs:
-
-```text
-data/bronze/transfermarkt/
-├── raw_html/squads/<url_hash>.html
-├── raw_html/transfers/<url_hash>.html
-├── raw_json/collected_pages.json
-└── raw_json/ingestion_failures.json
-```
-
-Silver-ready outputs:
-
-```text
-data/silver/transfermarkt/
-├── player_market_values.csv
-├── player_market_values.json
-├── transfers.csv
-└── transfers.json
-```
-
 The parser tests use saved HTML fixtures under `tests/fixtures/transfermarkt`
 and do not hit the live website.
 
-## Development Status
+## Security and Submission Hygiene
 
-This repository is currently at the initial scaffold stage. The next increments
-will implement source ingestion, bronze storage contracts, dbt staging models,
-warehouse marts, API endpoints, and dashboard views.
+Do not commit local pipeline outputs, credentials, screenshots, or generated
+state unless intentionally placed under a documented path such as
+`docs/images`.
 
-## Responsible Scraping
+Ignored by default:
 
-Transfermarkt scraping will be implemented with rate limiting, clear user-agent
-configuration, retries, robots.txt awareness where applicable, and cached raw
-responses to avoid unnecessary repeated requests.
+- `.env` and other local env files
+- local `data/`
+- service account and credential key patterns
+- dbt `target/`, `logs/`, `dbt_packages/`, and `.user.yml`
+- Terraform state and local caches
+- root-level screenshots
 
-## Security
+Before submission:
 
-Credentials and local paths must be supplied through environment variables or
-cloud identity. Do not commit `.env`, service account keys, warehouse secrets,
-or local data extracts.
+```bash
+git status --short
+make lint
+make test
+```
