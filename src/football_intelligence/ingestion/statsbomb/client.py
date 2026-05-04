@@ -1,8 +1,8 @@
 """StatsBomb Open Data ingestion client."""
 
-from collections.abc import Iterable
 import json
 import logging
+from collections.abc import Iterable
 from pathlib import Path
 from typing import Any
 from urllib.parse import urlparse
@@ -130,7 +130,13 @@ class StatsBombOpenDataClient(IngestionClient):
 
         self._http_client.close()
 
-    def _match_scoped_asset(self, source_path: str, bronze_path: str, *, required: bool) -> RawAsset:
+    def _match_scoped_asset(
+        self,
+        source_path: str,
+        bronze_path: str,
+        *,
+        required: bool,
+    ) -> RawAsset:
         payload = self._read_bytes(source_path, required=required)
         return RawAsset(source="statsbomb", path=bronze_path, payload=payload)
 
@@ -204,7 +210,9 @@ class StatsBombOpenDataClient(IngestionClient):
     @staticmethod
     def _ensure_mapping(record: Any, source_path: str) -> dict[str, Any]:
         if not isinstance(record, dict):
-            raise StatsBombIngestionError(f"Expected object records in StatsBomb asset {source_path}")
+            raise StatsBombIngestionError(
+                f"Expected object records in StatsBomb asset {source_path}"
+            )
         return record
 
     @staticmethod
