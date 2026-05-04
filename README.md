@@ -78,7 +78,34 @@ StatsBomb Open Data ingestion writes source-faithful JSON into the local bronze
 directory using object-storage style paths. By default, the bronze root is
 `./data/bronze`.
 
-Run the ingestion from the public GitHub raw data source:
+Warning: do not run full StatsBomb ingestion as your first local ingestion.
+The open-data repository contains enough match-scoped event, lineup, and 360
+assets to make local runs slow and bulky. For local development, start with the
+bounded sample command and only use full ingestion after cloud or chunked
+processing is ready.
+
+Recommended local development command:
+
+```bash
+make ingest-statsbomb-sample
+```
+
+Sample ingestion command:
+
+```bash
+python3 -m football_intelligence.ingestion.statsbomb.run \
+  --competition-ids 2 \
+  --season-ids 44 \
+  --match-limit 5 \
+  --bronze-dir ./data/bronze
+```
+
+The `--match-limit` value is applied after `--competition-ids`,
+`--season-ids`, and `--match-ids`, so samples stay bounded even when filters
+match many fixtures.
+
+Full ingestion from the public GitHub raw data source should wait until cloud
+storage, orchestration, or chunked processing is in place:
 
 ```bash
 make ingest-statsbomb
@@ -107,7 +134,8 @@ Useful filters:
 python3 -m football_intelligence.ingestion.statsbomb.run \
   --competition-ids 2 \
   --season-ids 44 \
-  --match-ids 1234
+  --match-ids 1234 \
+  --match-limit 5
 ```
 
 Expected bronze layout:
@@ -131,6 +159,20 @@ Run:
 
 ```bash
 make transform-statsbomb-silver
+```
+
+For local development, transform the small sample you ingested first:
+
+```bash
+make transform-statsbomb-silver-sample
+```
+
+Sample transformation command:
+
+```bash
+python3 -m football_intelligence.transformations.statsbomb.run \
+  --bronze-open-data-dir ./data/bronze/statsbomb/open-data \
+  --silver-dir ./data/silver/statsbomb
 ```
 
 Or call the module directly:

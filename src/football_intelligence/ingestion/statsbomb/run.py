@@ -27,6 +27,7 @@ def main() -> None:
         competition_ids=_split_int_csv(args.competition_ids or settings.statsbomb_competition_ids),
         season_ids=_split_int_csv(args.season_ids or settings.statsbomb_season_ids),
         match_ids=_split_int_csv(args.match_ids or settings.statsbomb_match_ids),
+        match_limit=args.match_limit,
     )
     writer = LocalBronzeWriter(args.bronze_dir or settings.local_bronze_dir)
 
@@ -41,7 +42,7 @@ def main() -> None:
         client.close()
 
     logger.info(
-        "StatsBomb ingestion complete assets_written=%d bytes_written=%d",
+        "StatsBomb ingestion complete assets_written=%d total_bytes_written=%d",
         assets_written,
         bytes_written,
     )
@@ -56,6 +57,11 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--competition-ids", help="Comma-separated competition IDs.")
     parser.add_argument("--season-ids", help="Comma-separated season IDs.")
     parser.add_argument("--match-ids", help="Comma-separated match IDs.")
+    parser.add_argument(
+        "--match-limit",
+        type=int,
+        help="Maximum number of matches to ingest after competition, season, and match filters.",
+    )
     return parser.parse_args()
 
 

@@ -3,6 +3,7 @@
 import json
 import logging
 from collections.abc import Iterable
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 from urllib.parse import urlparse
@@ -12,6 +13,7 @@ from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_ex
 
 from football_intelligence.ingestion.base import IngestionClient, RawAsset
 from football_intelligence.ingestion.statsbomb.parsers import (
+    CompetitionRecord,
     parse_competition_record,
     parse_match_record,
 )
@@ -23,6 +25,13 @@ DEFAULT_COLLECTIONS = ("competitions", "matches", "events", "lineups", "three-si
 
 class StatsBombIngestionError(RuntimeError):
     """Raised when StatsBomb Open Data cannot be read or parsed."""
+
+
+@dataclass(frozen=True)
+class _CompetitionMatchSelection:
+    competition: CompetitionRecord
+    matches: list[dict[str, Any]]
+    match_ids: list[int]
 
 
 class StatsBombOpenDataClient(IngestionClient):
@@ -43,14 +52,19 @@ class StatsBombOpenDataClient(IngestionClient):
         competition_ids: Iterable[int] | None = None,
         season_ids: Iterable[int] | None = None,
         match_ids: Iterable[int] | None = None,
+        match_limit: int | None = None,
         timeout_seconds: float = 30.0,
     ) -> None:
+        if match_limit is not None and match_limit < 0:
+            raise ValueError("match_limit must be greater than or equal to 0")
+
         self.base_url = base_url.rstrip("/")
         self.local_data_dir = Path(local_data_dir).expanduser() if local_data_dir else None
         self.collections = self._normalize_collections(collections)
         self.competition_ids = set(competition_ids or [])
         self.season_ids = set(season_ids or [])
         self.match_ids = set(match_ids or [])
+        self.match_limit = match_limit
         self.timeout_seconds = timeout_seconds
         self._http_client = httpx.Client(timeout=timeout_seconds, follow_redirects=True)
 
@@ -67,6 +81,14 @@ class StatsBombOpenDataClient(IngestionClient):
             if not self.competition_ids or competition.competition_id in self.competition_ids
             if not self.season_ids or competition.season_id in self.season_ids
         ]
+        logger.info(
+            "Selected StatsBomb competitions=%s",
+            sorted({competition.competition_id for competition in filtered_competitions}),
+        )
+        logger.info(
+            "Selected StatsBomb seasons=%s",
+            sorted({competition.season_id for competition in filtered_competitions}),
+        )
 
         if "competitions" in self.collections:
             yield RawAsset(
@@ -75,30 +97,42 @@ class StatsBombOpenDataClient(IngestionClient):
                 payload=self._encode_json(competitions),
             )
 
-        discovered_match_ids: set[int] = set()
+        discovered_matches: list[tuple[CompetitionRecord, dict[str, Any], int]] = []
         for competition in filtered_competitions:
             matches_path = f"matches/{competition.competition_id}/{competition.season_id}.json"
             matches = self._read_json_list(matches_path, required=True)
             parsed_matches = [parse_match_record(record) for record in matches]
-            selected_matches = [
-                match
-                for match in parsed_matches
-                if not self.match_ids or match.match_id in self.match_ids
-            ]
-            discovered_match_ids.update(match.match_id for match in selected_matches)
+            discovered_matches.extend(
+                (competition, match_record, parsed_match.match_id)
+                for match_record, parsed_match in zip(matches, parsed_matches, strict=True)
+                if not self.match_ids or parsed_match.match_id in self.match_ids
+            )
 
+        logger.info("Discovered StatsBomb matches=%d", len(discovered_matches))
+        selected_matches = self._limit_matches(discovered_matches)
+        logger.info("Selected StatsBomb matches after match-limit=%d", len(selected_matches))
+
+        match_selections = self._group_matches_by_competition(selected_matches)
+        for match_selection in match_selections:
             if "matches" in self.collections:
                 yield RawAsset(
                     source="statsbomb",
                     path=(
                         "statsbomb/open-data/matches/"
-                        f"competition_id={competition.competition_id}/"
-                        f"season_id={competition.season_id}/matches.json"
+                        f"competition_id={match_selection.competition.competition_id}/"
+                        f"season_id={match_selection.competition.season_id}/matches.json"
                     ),
-                    payload=self._encode_json(matches),
+                    payload=self._encode_json(match_selection.matches),
                 )
 
-        for match_id in sorted(discovered_match_ids):
+        selected_match_ids = sorted(
+            {
+                match_id
+                for match_selection in match_selections
+                for match_id in match_selection.match_ids
+            }
+        )
+        for match_id in selected_match_ids:
             if "events" in self.collections:
                 yield self._match_scoped_asset(
                     source_path=f"events/{match_id}.json",
@@ -218,6 +252,31 @@ class StatsBombOpenDataClient(IngestionClient):
     @staticmethod
     def _encode_json(records: list[dict[str, Any]]) -> bytes:
         return json.dumps(records, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
+
+    def _limit_matches(
+        self,
+        matches: list[tuple[CompetitionRecord, dict[str, Any], int]],
+    ) -> list[tuple[CompetitionRecord, dict[str, Any], int]]:
+        if self.match_limit is None:
+            return matches
+        return matches[: self.match_limit]
+
+    @staticmethod
+    def _group_matches_by_competition(
+        matches: list[tuple[CompetitionRecord, dict[str, Any], int]],
+    ) -> list[_CompetitionMatchSelection]:
+        grouped: dict[tuple[int, int], _CompetitionMatchSelection] = {}
+        for competition, match_record, match_id in matches:
+            key = (competition.competition_id, competition.season_id)
+            if key not in grouped:
+                grouped[key] = _CompetitionMatchSelection(
+                    competition=competition,
+                    matches=[],
+                    match_ids=[],
+                )
+            grouped[key].matches.append(match_record)
+            grouped[key].match_ids.append(match_id)
+        return list(grouped.values())
 
     @staticmethod
     def _normalize_collections(collections: Iterable[str]) -> tuple[str, ...]:
