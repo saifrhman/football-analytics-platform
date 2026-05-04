@@ -17,5 +17,9 @@ class BigQueryRepository:
         The implementation will be added alongside API and dashboard data contracts.
         """
 
-        logger.info("BigQuery query placeholder project=%s sql_length=%d", self.project_id, len(sql))
+        logger.info(
+            "BigQuery query placeholder project=%s sql_length=%d",
+            self.project_id,
+            len(sql),
+        )
         return []
