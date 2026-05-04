@@ -51,21 +51,25 @@ def test_statsbomb_client_reads_local_mirror_and_writes_bronze(tmp_path: Path) -
 
     written_paths = [writer.write(asset).path for asset in client.fetch()]
 
-    assert tmp_path / "bronze/statsbomb/open-data/competitions/competitions.json" in written_paths
-    assert (
-        tmp_path
-        / "bronze/statsbomb/open-data/matches/competition_id=2/season_id=44/matches.json"
-        in written_paths
+    competitions_path = tmp_path / (
+        "bronze/statsbomb/open-data/competitions/competitions.json"
     )
-    assert tmp_path / "bronze/statsbomb/open-data/events/match_id=1234/events.json" in written_paths
-    assert (
-        tmp_path / "bronze/statsbomb/open-data/lineups/match_id=1234/lineups.json"
-        in written_paths
+    matches_path = tmp_path / (
+        "bronze/statsbomb/open-data/matches/competition_id=2/season_id=44/matches.json"
     )
-    assert (
-        tmp_path / "bronze/statsbomb/open-data/three-sixty/match_id=1234/three-sixty.json"
-        in written_paths
+    events_path = tmp_path / "bronze/statsbomb/open-data/events/match_id=1234/events.json"
+    lineups_path = tmp_path / (
+        "bronze/statsbomb/open-data/lineups/match_id=1234/lineups.json"
     )
+    three_sixty_path = tmp_path / (
+        "bronze/statsbomb/open-data/three-sixty/match_id=1234/three-sixty.json"
+    )
+
+    assert competitions_path in written_paths
+    assert matches_path in written_paths
+    assert events_path in written_paths
+    assert lineups_path in written_paths
+    assert three_sixty_path in written_paths
 
 
 def _write_json(path: Path, payload: object) -> None:
