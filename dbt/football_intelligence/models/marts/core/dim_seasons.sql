@@ -1,6 +1,4 @@
-select
-  cast(null as string) as season_id,
-  cast(null as string) as season_name,
-  cast(null as date) as start_date,
-  cast(null as date) as end_date
-where false
+select distinct
+  season_id,
+  season_name
+from {{ ref('stg_statsbomb_competitions') }}

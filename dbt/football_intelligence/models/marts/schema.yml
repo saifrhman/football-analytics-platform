@@ -27,7 +27,9 @@ models:
       - name: competition_id
         tests:
           - not_null
-          - unique
+      - name: season_id
+        tests:
+          - not_null
 
   - name: dim_seasons
     columns:
@@ -44,16 +46,38 @@ models:
           - unique
       - name: match_id
         tests:
+          - not_null
           - relationships:
               arguments:
                 to: ref('dim_matches')
                 field: match_id
 
-  - name: fact_player_market_values
+  - name: fact_shots
     columns:
-      - name: player_id
+      - name: event_id
         tests:
-          - relationships:
-              arguments:
-                to: ref('dim_players')
-                field: player_id
+          - not_null
+          - unique
+      - name: match_id
+        tests:
+          - not_null
+
+  - name: fact_passes
+    columns:
+      - name: event_id
+        tests:
+          - not_null
+          - unique
+      - name: match_id
+        tests:
+          - not_null
+
+  - name: fact_pressures
+    columns:
+      - name: event_id
+        tests:
+          - not_null
+          - unique
+      - name: match_id
+        tests:
+          - not_null

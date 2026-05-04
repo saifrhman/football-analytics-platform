@@ -1,5 +1,2 @@
-select
-  cast(null as string) as team_id,
-  cast(null as string) as team_name,
-  cast(null as string) as country
-where false
+select *
+from {{ ref('stg_statsbomb_teams') }}

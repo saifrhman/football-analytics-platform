@@ -1,6 +1,28 @@
 version: 2
 
 sources:
+  - name: statsbomb_silver
+    database: "{{ env_var('GCP_PROJECT_ID') }}"
+    schema: "{{ env_var('BIGQUERY_DATASET_SILVER', 'football_silver') }}"
+    tables:
+      - name: competitions
+      - name: matches
+      - name: teams
+      - name: players
+      - name: events
+      - name: shots
+      - name: passes
+      - name: pressures
+      - name: three_sixty_freeze_frames
+
+  - name: transfermarkt_silver
+    database: "{{ env_var('GCP_PROJECT_ID') }}"
+    schema: "{{ env_var('BIGQUERY_DATASET_SILVER', 'football_silver') }}"
+    description: "Optional Transfermarkt silver tables. Models are disabled until these loads exist."
+    tables:
+      - name: player_market_values
+      - name: transfers
+
   - name: bronze_statsbomb
     database: "{{ env_var('GCP_PROJECT_ID') }}"
     schema: "{{ env_var('BIGQUERY_DATASET_BRONZE', 'football_bronze') }}"

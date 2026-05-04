@@ -16,7 +16,14 @@ models:
   football_intelligence:
     staging:
       +materialized: view
+      transfermarkt:
+        +enabled: false
     intermediate:
       +materialized: view
     marts:
       +materialized: table
+      analytics:
+        fact_player_market_values:
+          +enabled: false
+        fact_transfers:
+          +enabled: false

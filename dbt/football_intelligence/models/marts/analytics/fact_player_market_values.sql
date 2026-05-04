@@ -1,3 +1,5 @@
+{{ config(enabled=false) }}
+
 select
   player_id,
   valuation_date,
