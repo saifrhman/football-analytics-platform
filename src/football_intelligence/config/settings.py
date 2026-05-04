@@ -18,6 +18,9 @@ class Settings(BaseSettings):
     gcs_bronze_bucket: str | None = Field(default=None, alias="GCS_BRONZE_BUCKET")
     gcs_silver_bucket: str | None = Field(default=None, alias="GCS_SILVER_BUCKET")
     gcs_gold_bucket: str | None = Field(default=None, alias="GCS_GOLD_BUCKET")
+    bigquery_dataset_bronze: str | None = Field(default=None, alias="BIGQUERY_DATASET_BRONZE")
+    bigquery_dataset_silver: str | None = Field(default=None, alias="BIGQUERY_DATASET_SILVER")
+    bigquery_dataset_gold: str | None = Field(default=None, alias="BIGQUERY_DATASET_GOLD")
     local_bronze_dir: str = Field(default="./data/bronze", alias="LOCAL_BRONZE_DIR")
     local_silver_dir: str = Field(default="./data/silver", alias="LOCAL_SILVER_DIR")
     statsbomb_open_data_base_url: str = Field(

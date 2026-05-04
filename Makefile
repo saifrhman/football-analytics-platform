@@ -1,6 +1,6 @@
 PYTHON ?= $(shell if [ -x .venv/bin/python ]; then echo .venv/bin/python; else echo python3; fi)
 
-.PHONY: build up down logs lint format test ingest-statsbomb ingest-statsbomb-sample ingest-transfermarkt
+.PHONY: build up down logs lint format test ingest-statsbomb ingest-statsbomb-sample ingest-transfermarkt load-statsbomb-bigquery
 .PHONY: transform-statsbomb-silver transform-statsbomb-silver-sample dbt-debug dbt-deps dbt-parse clean
 
 build:
@@ -44,6 +44,9 @@ transform-statsbomb-silver-sample:
 	python3 -m football_intelligence.transformations.statsbomb.run \
 		--bronze-open-data-dir ./data/bronze/statsbomb/open-data \
 		--silver-dir ./data/silver/statsbomb
+
+load-statsbomb-bigquery:
+	python3 -m football_intelligence.loaders.bigquery.statsbomb_silver
 
 dbt-debug:
 	cd dbt/football_intelligence && dbt debug

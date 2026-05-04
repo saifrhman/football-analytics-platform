@@ -209,6 +209,38 @@ data/silver/statsbomb/
 └── three_sixty_freeze_frames.csv
 ```
 
+## StatsBomb BigQuery Loading
+
+The StatsBomb BigQuery loader reads local silver CSV files from
+`./data/silver/statsbomb` and loads them into the configured silver BigQuery
+dataset with explicit table schemas. Development loads use `WRITE_TRUNCATE`, so
+each run replaces the target tables.
+
+Set the required environment variables before loading:
+
+```bash
+export GCP_PROJECT_ID=<your-gcp-project>
+export BIGQUERY_DATASET_SILVER=<your-silver-dataset>
+export GOOGLE_APPLICATION_CREDENTIALS=/path/to/service-account.json
+```
+
+Load the StatsBomb silver tables:
+
+```bash
+make load-statsbomb-bigquery
+```
+
+Or call the module directly:
+
+```bash
+python3 -m football_intelligence.loaders.bigquery.statsbomb_silver \
+  --silver-dir ./data/silver/statsbomb
+```
+
+The loader writes these tables: `competitions`, `matches`, `teams`, `players`,
+`events`, `shots`, `passes`, `pressures`, and
+`three_sixty_freeze_frames`.
+
 Silver table purpose:
 
 - `competitions.csv`: one row per competition-season.
