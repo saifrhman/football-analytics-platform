@@ -260,6 +260,35 @@ Silver table purpose:
 - `three_sixty_freeze_frames.csv`: one row per 360 freeze-frame player with
   event, match, player, teammate, actor, keeper, and location fields.
 
+## Streamlit Dashboard
+
+The Streamlit dashboard reads from the BigQuery gold dataset built by dbt. It
+uses Google Application Default Credentials or OAuth, and it does not hardcode
+project IDs, datasets, or regions.
+
+Set the required environment variables:
+
+```bash
+export GCP_PROJECT_ID=<your-gcp-project>
+export BIGQUERY_DATASET_GOLD=<your-gold-dataset>
+export GCP_REGION=europe-west2
+```
+
+Run the dashboard from the repository root:
+
+```bash
+streamlit run src/football_intelligence/dashboard/app.py
+```
+
+The dashboard expects these gold models to exist: `dim_teams`, `dim_matches`,
+`dim_players`, `fact_events`, `fact_passes`, `fact_pressures`, and
+`fact_shots`. Run `make dbt-run` before opening the dashboard if the gold
+dataset has not been built yet.
+
+Available filters include team, match, player, and event type. Dashboard views
+include xG trend by match, pass type distribution, shot outcome distribution,
+pressure counts by team/player, and top passers.
+
 ## Transfermarkt Ingestion
 
 Transfermarkt ingestion is intentionally URL-driven and conservative. Configure
