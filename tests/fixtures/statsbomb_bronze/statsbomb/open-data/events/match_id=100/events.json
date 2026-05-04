@@ -1,0 +1,66 @@
+[
+  {
+    "id": "event-pass-1",
+    "index": 1,
+    "period": 1,
+    "timestamp": "00:01:02.000",
+    "minute": 1,
+    "second": 2,
+    "possession": 1,
+    "possession_team": {"id": 11, "name": "Home FC"},
+    "type": {"id": 30, "name": "Pass"},
+    "team": {"id": 11, "name": "Home FC"},
+    "player": {"id": 101, "name": "Player Passer"},
+    "position": {"id": 14, "name": "Center Midfield"},
+    "play_pattern": {"id": 1, "name": "Regular Play"},
+    "location": [40.0, 30.0],
+    "duration": 1.2,
+    "pass": {
+      "recipient": {"id": 102, "name": "Player Receiver"},
+      "length": 22.5,
+      "angle": 0.5,
+      "height": {"id": 1, "name": "Ground Pass"},
+      "type": {"id": 65, "name": "Kick Off"},
+      "body_part": {"id": 40, "name": "Right Foot"},
+      "end_location": [60.0, 35.0],
+      "shot_assist": true
+    }
+  },
+  {
+    "id": "event-shot-1",
+    "index": 2,
+    "period": 1,
+    "timestamp": "00:02:10.000",
+    "minute": 2,
+    "second": 10,
+    "possession": 1,
+    "possession_team": {"id": 11, "name": "Home FC"},
+    "type": {"id": 16, "name": "Shot"},
+    "team": {"id": 11, "name": "Home FC"},
+    "player": {"id": 103, "name": "Player Shooter"},
+    "location": [110.0, 40.0],
+    "shot": {
+      "statsbomb_xg": 0.32,
+      "end_location": [120.0, 42.0, 1.2],
+      "outcome": {"id": 97, "name": "Goal"},
+      "body_part": {"id": 40, "name": "Right Foot"},
+      "technique": {"id": 93, "name": "Normal"},
+      "first_time": true
+    }
+  },
+  {
+    "id": "event-pressure-1",
+    "index": 3,
+    "period": 1,
+    "timestamp": "00:03:00.000",
+    "minute": 3,
+    "second": 0,
+    "possession": 2,
+    "possession_team": {"id": 22, "name": "Away FC"},
+    "type": {"id": 17, "name": "Pressure"},
+    "team": {"id": 22, "name": "Away FC"},
+    "player": {"id": 201, "name": "Player Presser"},
+    "location": [70.0, 20.0],
+    "pressure": {"counterpress": true}
+  }
+]

@@ -25,6 +25,10 @@ class Settings(BaseSettings):
         alias="STATSBOMB_OPEN_DATA_BASE_URL",
     )
     statsbomb_local_data_dir: str | None = Field(default=None, alias="STATSBOMB_LOCAL_DATA_DIR")
+    statsbomb_bronze_open_data_dir: str = Field(
+        default="./data/bronze/statsbomb/open-data",
+        alias="STATSBOMB_BRONZE_OPEN_DATA_DIR",
+    )
     statsbomb_collections: str = Field(
         default="competitions,matches,events,lineups,three-sixty",
         alias="STATSBOMB_COLLECTIONS",

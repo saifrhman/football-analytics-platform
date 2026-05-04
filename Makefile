@@ -1,4 +1,5 @@
-.PHONY: build up down logs lint format test dbt-debug dbt-deps dbt-parse clean
+.PHONY: build up down logs lint format test ingest-statsbomb ingest-transfermarkt
+.PHONY: transform-statsbomb-silver dbt-debug dbt-deps dbt-parse clean
 
 build:
 	docker compose build
@@ -26,6 +27,9 @@ ingest-statsbomb:
 
 ingest-transfermarkt:
 	python3 -m football_intelligence.ingestion.transfermarkt.run
+
+transform-statsbomb-silver:
+	python3 -m football_intelligence.transformations.statsbomb.run
 
 dbt-debug:
 	cd dbt/football_intelligence && dbt debug

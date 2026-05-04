@@ -121,6 +121,71 @@ data/bronze/statsbomb/open-data/
 └── three-sixty/match_id=<id>/three-sixty.json
 ```
 
+## StatsBomb Silver Transformation
+
+The StatsBomb silver transformation reads raw bronze JSON and writes cleaned,
+flattened CSV tables for dbt loading, warehouse modelling, APIs, and dashboard
+features.
+
+Run:
+
+```bash
+make transform-statsbomb-silver
+```
+
+Or call the module directly:
+
+```bash
+python3 -m football_intelligence.transformations.statsbomb.run \
+  --bronze-open-data-dir ./data/bronze/statsbomb/open-data \
+  --silver-dir ./data/silver/statsbomb
+```
+
+Expected input layout:
+
+```text
+data/bronze/statsbomb/open-data/
+├── competitions/competitions.json
+├── matches/competition_id=<id>/season_id=<id>/matches.json
+├── events/match_id=<id>/events.json
+├── lineups/match_id=<id>/lineups.json
+└── three-sixty/match_id=<id>/three-sixty.json
+```
+
+Expected output layout:
+
+```text
+data/silver/statsbomb/
+├── competitions.csv
+├── matches.csv
+├── teams.csv
+├── players.csv
+├── events.csv
+├── shots.csv
+├── passes.csv
+├── pressures.csv
+└── three_sixty_freeze_frames.csv
+```
+
+Silver table purpose:
+
+- `competitions.csv`: one row per competition-season.
+- `matches.csv`: cleaned match metadata with competition, season, team, score,
+  stadium, and referee identifiers.
+- `teams.csv`: deduplicated team dimension seeds from matches, lineups, and
+  events.
+- `players.csv`: deduplicated player dimension seeds from lineups and events.
+- `events.csv`: flattened event fact base preserving `event_id`, `match_id`,
+  `team_id`, `player_id`, `possession`, and `timestamp`.
+- `shots.csv`: shot-specific event details including xG, outcome, technique,
+  body part, and shot end location.
+- `passes.csv`: pass-specific event details including recipient, pass type,
+  height, outcome, body part, and end location.
+- `pressures.csv`: pressure-specific event details for defensive analysis and
+  heatmaps.
+- `three_sixty_freeze_frames.csv`: one row per 360 freeze-frame player with
+  event, match, player, teammate, actor, keeper, and location fields.
+
 ## Transfermarkt Ingestion
 
 Transfermarkt ingestion is intentionally URL-driven and conservative. Configure

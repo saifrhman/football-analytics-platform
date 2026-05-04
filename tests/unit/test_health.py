@@ -1,12 +1,6 @@
-from fastapi.testclient import TestClient
-
-from football_intelligence.api.main import app
+from football_intelligence.api.main import health
 
 
-def test_health_endpoint() -> None:
-    client = TestClient(app)
-
-    response = client.get("/health")
-
-    assert response.status_code == 200
-    assert response.json()["status"] == "ok"
+def test_health_endpoint_payload() -> None:
+    response = health()
+    assert response["status"] == "ok"

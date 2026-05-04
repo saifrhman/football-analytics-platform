@@ -1,0 +1,32 @@
+[
+  {
+    "team_id": 11,
+    "team_name": "Home FC",
+    "lineup": [
+      {
+        "player_id": 101,
+        "player_name": "Player Passer",
+        "jersey_number": 8,
+        "country": {"name": "England"}
+      },
+      {
+        "player_id": 102,
+        "player_name": "Player Receiver",
+        "jersey_number": 9,
+        "country": {"name": "England"}
+      }
+    ]
+  },
+  {
+    "team_id": 22,
+    "team_name": "Away FC",
+    "lineup": [
+      {
+        "player_id": 201,
+        "player_name": "Player Presser",
+        "jersey_number": 6,
+        "country": {"name": "Spain"}
+      }
+    ]
+  }
+]

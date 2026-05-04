@@ -1,0 +1,22 @@
+[
+  {
+    "event_uuid": "event-shot-1",
+    "visible_area": [0.0, 0.0, 120.0, 80.0],
+    "freeze_frame": [
+      {
+        "player": {"id": 103, "name": "Player Shooter"},
+        "teammate": true,
+        "actor": true,
+        "keeper": false,
+        "location": [110.0, 40.0]
+      },
+      {
+        "player": {"id": 202, "name": "Goalkeeper"},
+        "teammate": false,
+        "actor": false,
+        "keeper": true,
+        "location": [118.0, 40.0]
+      }
+    ]
+  }
+]

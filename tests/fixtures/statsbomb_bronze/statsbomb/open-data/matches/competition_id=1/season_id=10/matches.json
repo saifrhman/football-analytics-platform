@@ -1,0 +1,23 @@
+[
+  {
+    "match_id": 100,
+    "competition_id": 1,
+    "season_id": 10,
+    "match_date": "2024-08-01",
+    "kick_off": "15:00:00.000",
+    "home_team": {
+      "home_team_id": 11,
+      "home_team_name": "Home FC",
+      "country": {"name": "England"}
+    },
+    "away_team": {
+      "away_team_id": 22,
+      "away_team_name": "Away FC",
+      "country": {"name": "Spain"}
+    },
+    "home_score": 2,
+    "away_score": 1,
+    "stadium": {"name": "Fixture Stadium"},
+    "referee": {"name": "Referee One"}
+  }
+]
