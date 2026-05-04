@@ -40,12 +40,14 @@ models:
       - name: match_id
         tests:
           - relationships:
-              to: ref('dim_matches')
-              field: match_id
+              arguments:
+                to: ref('dim_matches')
+                field: match_id
   - name: fact_player_market_values
     columns:
       - name: player_id
         tests:
           - relationships:
-              to: ref('dim_players')
-              field: player_id
+              arguments:
+                to: ref('dim_players')
+                field: player_id
