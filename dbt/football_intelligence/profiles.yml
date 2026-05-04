@@ -3,10 +3,9 @@ football_intelligence:
   outputs:
     dev:
       type: bigquery
-      method: service-account
+      method: oauth
       project: "{{ env_var('GCP_PROJECT_ID') }}"
       dataset: "{{ env_var('BIGQUERY_DATASET_GOLD', 'football_gold') }}"
       threads: 4
-      keyfile: "{{ env_var('GOOGLE_APPLICATION_CREDENTIALS') }}"
       location: "{{ env_var('GCP_REGION', 'europe-west2') }}"
       priority: interactive
