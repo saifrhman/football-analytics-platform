@@ -1,0 +1,20 @@
+version: 2
+
+sources:
+  - name: bronze_statsbomb
+    database: "{{ env_var('GCP_PROJECT_ID') }}"
+    schema: "{{ env_var('BIGQUERY_DATASET_BRONZE', 'football_bronze') }}"
+    tables:
+      - name: competitions_raw
+      - name: matches_raw
+      - name: events_raw
+      - name: lineups_raw
+      - name: three_sixty_raw
+
+  - name: bronze_transfermarkt
+    database: "{{ env_var('GCP_PROJECT_ID') }}"
+    schema: "{{ env_var('BIGQUERY_DATASET_BRONZE', 'football_bronze') }}"
+    tables:
+      - name: player_market_values_raw
+      - name: transfers_raw
+      - name: squads_raw

@@ -1,1 +1,197 @@
-# football-analytics-platform
+# football-intelligence-platform
+
+Production-oriented football data engineering platform for ingesting, modelling,
+serving, and visualising open football data.
+
+## Goal
+
+Build an end-to-end football intelligence platform aligned with elite football
+club data engineering workflows: robust ingestion, lakehouse-style storage,
+dimensional modelling, orchestration, CI/CD, cloud infrastructure, APIs, and
+analytics dashboards.
+
+## Data Sources
+
+- StatsBomb Open Data: competitions, matches, events, lineups, and 360 data.
+- Transfermarkt public web data: market values, transfers, squad composition,
+  player ages, nationalities, and fees, scraped responsibly.
+
+## Architecture
+
+The repository follows a medallion/lakehouse design.
+
+- Bronze: raw JSON and scraped source snapshots stored in object storage.
+- Silver: cleaned and normalized warehouse tables.
+- Gold: analytics-ready marts for dashboards and APIs.
+
+## Target Stack
+
+- Python for ingestion, quality checks, APIs, and dashboards.
+- GCS and BigQuery for storage and warehouse layers.
+- dbt for warehouse transformations and tests.
+- Airflow for orchestration.
+- Docker Compose for local development.
+- Terraform for cloud infrastructure.
+- FastAPI for curated data access.
+- Streamlit for football analytics data products.
+- GitHub Actions for linting, testing, and dbt validation.
+
+## Repository Layout
+
+```text
+.
+├── airflow/                 # Airflow DAGs and plugins
+├── dbt/football_intelligence # dbt project
+├── docker/                  # Service-specific Dockerfiles
+├── docs/                    # Architecture and operating notes
+├── infra/terraform/         # GCS and BigQuery infrastructure skeleton
+├── scripts/                 # Local developer and CI helper scripts
+├── src/football_intelligence # Python application package
+└── tests/                   # Unit and integration tests
+```
+
+## Quick Start
+
+1. Copy `.env.example` to `.env` and fill in local values.
+2. Build local services:
+
+```bash
+make build
+```
+
+3. Run the development stack:
+
+```bash
+make up
+```
+
+4. Run checks:
+
+```bash
+make lint
+make test
+```
+
+## StatsBomb Bronze Ingestion
+
+StatsBomb Open Data ingestion writes source-faithful JSON into the local bronze
+directory using object-storage style paths. By default, the bronze root is
+`./data/bronze`.
+
+Run the ingestion from the public GitHub raw data source:
+
+```bash
+make ingest-statsbomb
+```
+
+Or call the module directly:
+
+```bash
+python3 -m football_intelligence.ingestion.statsbomb.run \
+  --bronze-dir ./data/bronze \
+  --collections competitions,matches,events,lineups,three-sixty
+```
+
+To ingest from a local clone or mirror of `statsbomb/open-data/data`, set
+`STATSBOMB_LOCAL_DATA_DIR` or pass `--local-data-dir`:
+
+```bash
+python3 -m football_intelligence.ingestion.statsbomb.run \
+  --local-data-dir ./external/statsbomb-open-data/data \
+  --bronze-dir ./data/bronze
+```
+
+Useful filters:
+
+```bash
+python3 -m football_intelligence.ingestion.statsbomb.run \
+  --competition-ids 2 \
+  --season-ids 44 \
+  --match-ids 1234
+```
+
+Expected bronze layout:
+
+```text
+data/bronze/statsbomb/open-data/
+├── competitions/competitions.json
+├── matches/competition_id=<id>/season_id=<id>/matches.json
+├── events/match_id=<id>/events.json
+├── lineups/match_id=<id>/lineups.json
+└── three-sixty/match_id=<id>/three-sixty.json
+```
+
+## Transfermarkt Ingestion
+
+Transfermarkt ingestion is intentionally URL-driven and conservative. Configure
+only the squad and transfer pages you want to collect, use a descriptive user
+agent, and keep a delay between requests. The default delay is 2 seconds.
+
+Example `.env` values:
+
+```bash
+TRANSFERMARKT_USER_AGENT=football-intelligence-platform/0.1 your-email@example.com
+TRANSFERMARKT_REQUEST_DELAY_SECONDS=3
+TRANSFERMARKT_SQUAD_URLS=https://www.transfermarkt.com/example/kader/verein/1/saison_id/2024/plus/1
+TRANSFERMARKT_TRANSFER_URLS=https://www.transfermarkt.com/example/transfers/verein/1/saison_id/2024
+LOCAL_BRONZE_DIR=./data/bronze
+LOCAL_SILVER_DIR=./data/silver
+```
+
+Run:
+
+```bash
+make ingest-transfermarkt
+```
+
+Or call the module directly:
+
+```bash
+python3 -m football_intelligence.ingestion.transfermarkt.run \
+  --delay-seconds 3 \
+  --squad-urls "https://www.transfermarkt.com/example/kader/verein/1/saison_id/2024/plus/1" \
+  --transfer-urls "https://www.transfermarkt.com/example/transfers/verein/1/saison_id/2024" \
+  --bronze-dir ./data/bronze \
+  --silver-dir ./data/silver
+```
+
+Raw bronze outputs:
+
+```text
+data/bronze/transfermarkt/
+├── raw_html/squads/<url_hash>.html
+├── raw_html/transfers/<url_hash>.html
+├── raw_json/collected_pages.json
+└── raw_json/ingestion_failures.json
+```
+
+Silver-ready outputs:
+
+```text
+data/silver/transfermarkt/
+├── player_market_values.csv
+├── player_market_values.json
+├── transfers.csv
+└── transfers.json
+```
+
+The parser tests use saved HTML fixtures under `tests/fixtures/transfermarkt`
+and do not hit the live website.
+
+## Development Status
+
+This repository is currently at the initial scaffold stage. The next increments
+will implement source ingestion, bronze storage contracts, dbt staging models,
+warehouse marts, API endpoints, and dashboard views.
+
+## Responsible Scraping
+
+Transfermarkt scraping will be implemented with rate limiting, clear user-agent
+configuration, retries, robots.txt awareness where applicable, and cached raw
+responses to avoid unnecessary repeated requests.
+
+## Security
+
+Credentials and local paths must be supplied through environment variables or
+cloud identity. Do not commit `.env`, service account keys, warehouse secrets,
+or local data extracts.
