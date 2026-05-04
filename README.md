@@ -289,6 +289,36 @@ Available filters include team, match, player, and event type. Dashboard views
 include xG trend by match, pass type distribution, shot outcome distribution,
 pressure counts by team/player, and top passers.
 
+## FastAPI Service
+
+The FastAPI service reads from the same BigQuery gold dataset as the dashboard.
+It uses `GCP_PROJECT_ID`, `BIGQUERY_DATASET_GOLD`, and `GCP_REGION` from the
+environment, with Google Application Default Credentials or OAuth.
+
+Run the API locally:
+
+```bash
+PYTHONPATH=src uvicorn football_intelligence.api.main:app --reload
+```
+
+Example requests:
+
+```bash
+curl http://127.0.0.1:8000/health
+curl "http://127.0.0.1:8000/teams?limit=50"
+curl "http://127.0.0.1:8000/players?team_id=1&limit=50"
+curl "http://127.0.0.1:8000/matches?team_id=1&limit=25"
+curl "http://127.0.0.1:8000/analytics/xg-summary?team_id=1&limit=10"
+curl "http://127.0.0.1:8000/analytics/pass-types?match_id=12345"
+curl "http://127.0.0.1:8000/analytics/shot-outcomes?player_id=67890"
+curl "http://127.0.0.1:8000/analytics/pressures?team_id=1&limit=20"
+```
+
+All analytics endpoints support optional `team_id`, `match_id`, `player_id`,
+and `limit` query parameters. The service returns JSON lists and responds with a
+clear `503` error if BigQuery credentials, permissions, or gold tables are not
+available.
+
 ## Transfermarkt Ingestion
 
 Transfermarkt ingestion is intentionally URL-driven and conservative. Configure
